@@ -210,10 +210,6 @@ export default function PracticePage() {
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-3 pt-2 border-t border-border">
-          <Button variant="outline" onClick={handleClear}>Limpiar</Button>
-          <Button onClick={handleSave}>Guardar Sesión →</Button>
-        </div>
       </div>
     </div>
   );
