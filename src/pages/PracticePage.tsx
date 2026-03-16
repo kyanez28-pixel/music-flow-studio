@@ -88,9 +88,15 @@ export default function PracticePage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="page-title">Registrar Práctica</h1>
-        <p className="text-sm text-muted-foreground mt-1">Documenta tu sesión de hoy</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="page-title">Registrar Práctica</h1>
+          <p className="text-sm text-muted-foreground mt-1">Documenta tu sesión de hoy</p>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={handleClear}>Limpiar</Button>
+          <Button onClick={handleSave}>Guardar Sesión →</Button>
+        </div>
       </div>
 
       <div className="stat-card space-y-6">
