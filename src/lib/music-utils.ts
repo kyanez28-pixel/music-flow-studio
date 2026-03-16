@@ -26,9 +26,14 @@ export function getMonday(date: Date): Date {
   return d;
 }
 
+export function getTodayEC(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Guayaquil' });
+}
+
 export function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('es-ES', {
-    day: 'numeric', month: 'short', year: 'numeric'
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('es-EC', {
+    day: 'numeric', month: 'short', year: 'numeric',
+    timeZone: 'America/Guayaquil'
   });
 }
 
