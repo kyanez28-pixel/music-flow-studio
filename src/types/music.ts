@@ -110,3 +110,9 @@ export interface WeeklySetlist {
   songIds: string[];
   rehearsalNotes: string;
 }
+
+export interface ScalePracticeLog {
+  scaleId: string; // matches PredefinedScale.id
+  date: string; // ISO date
+  instrument: Instrument;
+}
