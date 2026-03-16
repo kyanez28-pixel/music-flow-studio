@@ -38,7 +38,7 @@ export default function SetlistPage() {
   const monday = new Date();
   monday.setDate(monday.getDate() + weekOffset * 7);
   const mondayDate = getMonday(monday);
-  const mondayStr = mondayDate.toISOString().split('T')[0];
+  const mondayStr = mondayDate.toLocaleDateString('en-CA', { timeZone: 'America/Guayaquil' });
   const sundayDate = new Date(mondayDate);
   sundayDate.setDate(mondayDate.getDate() + 6);
 
