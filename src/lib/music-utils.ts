@@ -41,13 +41,13 @@ export function getStreak(sessions: PracticeSession[]): { current: number; best:
   if (sessions.length === 0) return { current: 0, best: 0 };
   
   const dates = [...new Set(sessions.map(s => s.date))].sort().reverse();
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayEC();
   
   let current = 0;
-  let checkDate = new Date(today);
+  let checkDate = new Date(today + 'T12:00:00');
   
   for (let i = 0; i < 365; i++) {
-    const dateStr = checkDate.toISOString().split('T')[0];
+    const dateStr = checkDate.toLocaleDateString('en-CA', { timeZone: 'America/Guayaquil' });
     if (dates.includes(dateStr)) {
       current++;
     } else if (i > 0) {

@@ -73,7 +73,7 @@ export default function PracticePage() {
   };
 
   const handleClear = () => {
-    setDate(new Date().toISOString().split('T')[0]);
+    setDate(getTodayEC());
     setInstrument('piano');
     setCategories([]);
     setNotes('');

@@ -42,7 +42,7 @@ export default function SetlistPage() {
   const sundayDate = new Date(mondayDate);
   sundayDate.setDate(mondayDate.getDate() + 6);
 
-  const weekLabel = `${mondayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} — ${sundayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+  const weekLabel = `${mondayDate.toLocaleDateString('es-EC', { day: 'numeric', month: 'short', timeZone: 'America/Guayaquil' })} — ${sundayDate.toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Guayaquil' })}`;
 
   const currentSetlist = setlists.find(s => s.weekStart === mondayStr) || { weekStart: mondayStr, songIds: [], rehearsalNotes: '' };
   const setlistSongs = currentSetlist.songIds.map(id => songs.find(s => s.id === id)).filter(Boolean) as Song[];
