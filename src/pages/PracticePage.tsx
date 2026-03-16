@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 export default function PracticePage() {
   const [sessions, setSessions] = useSessions();
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getTodayEC());
   const [instrument, setInstrument] = useState<Instrument>('piano');
   const [categories, setCategories] = useState<PracticeCategory[]>([]);
   const [notes, setNotes] = useState('');
