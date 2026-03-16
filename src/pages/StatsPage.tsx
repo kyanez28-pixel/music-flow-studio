@@ -42,9 +42,9 @@ export default function StatsPage() {
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = d.toLocaleDateString('en-CA', { timeZone: 'America/Guayaquil' });
       const mins = filtered.filter(s => s.date === dateStr).reduce((sum, s) => sum + s.durationMinutes, 0);
-      activityData.push({ label: d.toLocaleDateString('es-ES', { weekday: 'short' }), minutes: mins });
+      activityData.push({ label: d.toLocaleDateString('es-EC', { weekday: 'short', timeZone: 'America/Guayaquil' }), minutes: mins });
     }
   } else {
     // Weekly buckets

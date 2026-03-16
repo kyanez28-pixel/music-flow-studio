@@ -46,7 +46,7 @@ export function AppSidebar() {
   const [songs] = useSongs();
   const [setlists] = useSetlists();
 
-  const monday = getMonday(new Date()).toISOString().split('T')[0];
+  const monday = getMonday(new Date()).toLocaleDateString('en-CA', { timeZone: 'America/Guayaquil' });
   const currentSetlist = setlists.find(s => s.weekStart === monday);
   const setlistCount = currentSetlist?.songIds.length ?? 0;
 

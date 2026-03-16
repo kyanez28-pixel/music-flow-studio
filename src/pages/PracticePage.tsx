@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSessions } from '@/hooks/use-music-data';
-import { generateId } from '@/lib/music-utils';
+import { generateId, getTodayEC } from '@/lib/music-utils';
 import { ALL_CATEGORIES, CATEGORY_LABELS, type PracticeCategory, type Instrument } from '@/types/music';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 export default function PracticePage() {
   const [sessions, setSessions] = useSessions();
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getTodayEC());
   const [instrument, setInstrument] = useState<Instrument>('piano');
   const [categories, setCategories] = useState<PracticeCategory[]>([]);
   const [notes, setNotes] = useState('');
@@ -73,7 +73,7 @@ export default function PracticePage() {
   };
 
   const handleClear = () => {
-    setDate(new Date().toISOString().split('T')[0]);
+    setDate(getTodayEC());
     setInstrument('piano');
     setCategories([]);
     setNotes('');

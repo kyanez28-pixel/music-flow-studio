@@ -38,11 +38,11 @@ export default function SetlistPage() {
   const monday = new Date();
   monday.setDate(monday.getDate() + weekOffset * 7);
   const mondayDate = getMonday(monday);
-  const mondayStr = mondayDate.toISOString().split('T')[0];
+  const mondayStr = mondayDate.toLocaleDateString('en-CA', { timeZone: 'America/Guayaquil' });
   const sundayDate = new Date(mondayDate);
   sundayDate.setDate(mondayDate.getDate() + 6);
 
-  const weekLabel = `${mondayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} — ${sundayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+  const weekLabel = `${mondayDate.toLocaleDateString('es-EC', { day: 'numeric', month: 'short', timeZone: 'America/Guayaquil' })} — ${sundayDate.toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Guayaquil' })}`;
 
   const currentSetlist = setlists.find(s => s.weekStart === mondayStr) || { weekStart: mondayStr, songIds: [], rehearsalNotes: '' };
   const setlistSongs = currentSetlist.songIds.map(id => songs.find(s => s.id === id)).filter(Boolean) as Song[];
