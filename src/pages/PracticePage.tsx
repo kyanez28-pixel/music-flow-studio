@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSessions } from '@/hooks/use-music-data';
-import { generateId } from '@/lib/music-utils';
+import { generateId, getTodayEC } from '@/lib/music-utils';
 import { ALL_CATEGORIES, CATEGORY_LABELS, type PracticeCategory, type Instrument } from '@/types/music';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
