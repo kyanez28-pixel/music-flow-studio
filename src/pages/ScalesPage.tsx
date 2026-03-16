@@ -1,203 +1,205 @@
-import { useState } from 'react';
-import { useScales } from '@/hooks/use-music-data';
-import { generateId } from '@/lib/music-utils';
-import { type Scale, type ScaleType, type MasteryLevel, MASTERY_LABELS } from '@/types/music';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useState, useMemo } from 'react';
+import { useSessions, useScaleLogs } from '@/hooks/use-music-data';
+import { generateId, getTodayEC } from '@/lib/music-utils';
+import { PREDEFINED_SCALES, SCALE_TYPE_OPTIONS, NOTES } from '@/lib/predefined-scales';
+import type { Instrument, ScalePracticeLog } from '@/types/music';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
-import { Plus } from 'lucide-react';
-
-const SCALE_TYPES: { value: ScaleType; label: string }[] = [
-  { value: 'mayor', label: 'Mayores' },
-  { value: 'menor', label: 'Menores' },
-  { value: 'pentatonica', label: 'Pentatónicas' },
-  { value: 'blues', label: 'Blues' },
-  { value: 'modo', label: 'Modos' },
-  { value: 'otro', label: 'Otros' },
-];
-
-const MASTERY_OPTIONS: MasteryLevel[] = ['no_iniciado', 'basico', 'en_progreso', 'avanzado', 'dominado'];
 
 export default function ScalesPage() {
-  const [scales, setScales] = useScales();
-  const [showForm, setShowForm] = useState(false);
-  const [filterType, setFilterType] = useState<ScaleType | 'todos'>('todos');
-  const [filterInst, setFilterInst] = useState<'piano' | 'guitarra' | 'ambos' | 'todos'>('todos');
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [sessions, setSessions] = useSessions();
+  const [scaleLogs, setScaleLogs] = useScaleLogs();
+  const [filterType, setFilterType] = useState<string>('todos');
+  const [filterNote, setFilterNote] = useState<string>('todos');
+  const [instrument, setInstrument] = useState<Instrument>('piano');
 
-  // Form state
-  const [name, setName] = useState('');
-  const [type, setType] = useState<ScaleType>('mayor');
-  const [subtype, setSubtype] = useState('');
-  const [instrument, setInstrument] = useState<'piano' | 'guitarra' | 'ambos'>('ambos');
-  const [mastery, setMastery] = useState<MasteryLevel>('no_iniciado');
-  const [bpmCurrent, setBpmCurrent] = useState(0);
-  const [bpmTarget, setBpmTarget] = useState(0);
-  const [notes, setNotes] = useState('');
-  const [refUrl, setRefUrl] = useState('');
-  const [progress, setProgress] = useState(50);
+  const today = getTodayEC();
 
-  const resetForm = () => {
-    setShowForm(false); setEditingId(null);
-    setName(''); setType('mayor'); setSubtype(''); setInstrument('ambos');
-    setMastery('no_iniciado'); setBpmCurrent(0); setBpmTarget(0);
-    setNotes(''); setRefUrl(''); setProgress(50);
-  };
+  // Which scales were practiced today for this instrument
+  const todayChecked = useMemo(() => {
+    const set = new Set<string>();
+    scaleLogs
+      .filter(l => l.date === today && l.instrument === instrument)
+      .forEach(l => set.add(l.scaleId));
+    return set;
+  }, [scaleLogs, today, instrument]);
 
-  const openEdit = (scale: Scale) => {
-    setEditingId(scale.id); setName(scale.name); setType(scale.type);
-    setSubtype(scale.subtype); setInstrument(scale.instrument);
-    setMastery(scale.mastery); setBpmCurrent(scale.bpmCurrent);
-    setBpmTarget(scale.bpmTarget); setNotes(scale.notes);
-    setRefUrl(scale.referenceUrl); setProgress(scale.progress);
-    setShowForm(true);
-  };
+  // Filter scales
+  const filtered = PREDEFINED_SCALES
+    .filter(s => filterType === 'todos' || s.scaleType === filterType)
+    .filter(s => filterNote === 'todos' || s.note === filterNote);
 
-  const save = () => {
-    if (!name.trim()) { toast.error('El nombre es requerido'); return; }
-    const scale: Scale = {
-      id: editingId || generateId(), name, type, subtype, instrument,
-      mastery, bpmCurrent, bpmTarget, notes, referenceUrl: refUrl, progress,
-    };
-    if (editingId) {
-      setScales(prev => prev.map(s => s.id === editingId ? scale : s));
-      toast.success('Escala actualizada');
+  // Stats: total times each scale has been practiced
+  const practiceCount = useMemo(() => {
+    const counts: Record<string, number> = {};
+    scaleLogs.forEach(l => {
+      counts[l.scaleId] = (counts[l.scaleId] || 0) + 1;
+    });
+    return counts;
+  }, [scaleLogs]);
+
+  const maxPractice = Math.max(1, ...Object.values(practiceCount));
+
+  const toggleScale = (scaleId: string) => {
+    const alreadyChecked = todayChecked.has(scaleId);
+
+    if (alreadyChecked) {
+      // Remove log
+      setScaleLogs(prev =>
+        prev.filter(l => !(l.scaleId === scaleId && l.date === today && l.instrument === instrument))
+      );
     } else {
-      setScales(prev => [...prev, scale]);
-      toast.success('Escala agregada');
+      // Add log
+      const log: ScalePracticeLog = { scaleId, date: today, instrument };
+      setScaleLogs(prev => [...prev, log]);
     }
-    resetForm();
   };
 
-  const deleteScale = () => {
-    setScales(prev => prev.filter(s => s.id !== editingId));
-    resetForm();
-    toast.success('Escala eliminada');
+  // Save today's checked scales as a practice session
+  const saveSession = () => {
+    const checkedToday = scaleLogs.filter(l => l.date === today && l.instrument === instrument);
+    if (checkedToday.length === 0) {
+      toast.error('Marca al menos una escala antes de guardar');
+      return;
+    }
+
+    // Check if session already exists for today + escalas
+    const existingSession = sessions.find(
+      s => s.date === today && s.instrument === instrument && s.categories.includes('escalas')
+    );
+
+    if (existingSession) {
+      // Update notes with scale count
+      setSessions(prev =>
+        prev.map(s =>
+          s.id === existingSession.id
+            ? { ...s, notes: `Escalas practicadas: ${checkedToday.length}`, durationMinutes: Math.max(s.durationMinutes, checkedToday.length * 2) }
+            : s
+        )
+      );
+      toast.success(`Sesión actualizada: ${checkedToday.length} escalas`);
+    } else {
+      const session = {
+        id: generateId(),
+        date: today,
+        instrument,
+        durationMinutes: checkedToday.length * 2, // ~2 min per scale estimate
+        categories: ['escalas' as const],
+        notes: `Escalas practicadas: ${checkedToday.length}`,
+        rating: 3,
+        goal: '',
+      };
+      setSessions(prev => [...prev, session]);
+      toast.success(`¡Sesión guardada! ${checkedToday.length} escalas registradas`);
+    }
   };
 
-  const filtered = scales
-    .filter(s => filterType === 'todos' || s.type === filterType)
-    .filter(s => filterInst === 'todos' || s.instrument === filterInst || s.instrument === 'ambos');
+  const checkedCount = todayChecked.size;
+  const totalScales = PREDEFINED_SCALES.length;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="page-title">🎼 Escalas</h1>
-          <p className="text-sm text-muted-foreground mt-1">Registro y seguimiento de tu dominio de escalas</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Marca las escalas que practiques hoy — <span className="font-semibold text-primary">{checkedCount}</span> de {totalScales}
+          </p>
         </div>
-        <Button onClick={() => setShowForm(true)}><Plus className="h-4 w-4 mr-1" /> Nueva Escala</Button>
+        <button
+          onClick={saveSession}
+          className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+        >
+          Guardar Sesión ({checkedCount})
+        </button>
       </div>
 
+      {/* Instrument selector */}
+      <div className="flex gap-2">
+        {(['piano', 'guitarra'] as Instrument[]).map(inst => (
+          <button
+            key={inst}
+            onClick={() => setInstrument(inst)}
+            className={`chip flex-1 justify-center ${instrument === inst ? 'chip-active' : ''}`}
+          >
+            {inst === 'piano' ? '🎹 Piano' : '🎸 Guitarra'}
+          </button>
+        ))}
+      </div>
+
+      {/* Filters */}
       <div className="flex flex-wrap gap-2">
-        <select value={filterType} onChange={e => setFilterType(e.target.value as any)}
-          className="bg-secondary text-secondary-foreground rounded-md px-3 py-1.5 text-sm border border-border">
-          <option value="todos">Todos los tipos</option>
-          {SCALE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+        <select
+          value={filterNote}
+          onChange={e => setFilterNote(e.target.value)}
+          className="bg-secondary text-secondary-foreground rounded-md px-3 py-1.5 text-sm border border-border"
+        >
+          <option value="todos">Todas las notas</option>
+          {NOTES.map(n => <option key={n} value={n}>{n}</option>)}
         </select>
-        <select value={filterInst} onChange={e => setFilterInst(e.target.value as any)}
-          className="bg-secondary text-secondary-foreground rounded-md px-3 py-1.5 text-sm border border-border">
-          <option value="todos">Ambos instrumentos</option>
-          <option value="piano">🎹 Piano</option>
-          <option value="guitarra">🎸 Guitarra</option>
+        <select
+          value={filterType}
+          onChange={e => setFilterType(e.target.value)}
+          className="bg-secondary text-secondary-foreground rounded-md px-3 py-1.5 text-sm border border-border"
+        >
+          <option value="todos">Todos los tipos</option>
+          {SCALE_TYPE_OPTIONS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="stat-card py-12 text-center">
-          <p className="text-muted-foreground">No hay escalas registradas</p>
+      {/* Today's progress */}
+      <div className="stat-card">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-muted-foreground">Progreso de hoy</span>
+          <span className="text-sm font-mono font-semibold text-primary">{checkedCount}/{filtered.length}</span>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {filtered.map(s => (
-            <div key={s.id} onClick={() => openEdit(s)} className="stat-card cursor-pointer hover:border-primary/30">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium">{s.name}</h4>
-                <span className="text-xs">{MASTERY_LABELS[s.mastery]}</span>
-              </div>
-              <div className="h-1.5 bg-secondary rounded-full overflow-hidden mb-2">
-                <div className="h-full bg-primary rounded-full" style={{ width: `${s.progress}%` }} />
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{s.instrument === 'piano' ? '🎹' : s.instrument === 'guitarra' ? '🎸' : '🎼'} {SCALE_TYPES.find(t => t.value === s.type)?.label}</span>
-                {s.bpmCurrent > 0 && <span className="font-mono">{s.bpmCurrent}/{s.bpmTarget} BPM</span>}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+        <Progress value={filtered.length > 0 ? (checkedCount / filtered.length) * 100 : 0} className="h-2" />
+      </div>
 
-      <Dialog open={showForm} onOpenChange={open => { if (!open) resetForm(); }}>
-        <DialogContent className="bg-card border-border max-w-md max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="font-display">{editingId ? 'Editar' : 'Nueva'} Escala</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground">Nombre *</label>
-                <Input value={name} onChange={e => setName(e.target.value)} placeholder="Do Mayor" />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Subtipo</label>
-                <Input value={subtype} onChange={e => setSubtype(e.target.value)} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Instrumento</label>
-                <div className="flex gap-1">
-                  {(['piano', 'guitarra', 'ambos'] as const).map(i => (
-                    <button key={i} onClick={() => setInstrument(i)}
-                      className={`chip flex-1 justify-center text-xs ${instrument === i ? 'chip-active' : ''}`}>
-                      {i === 'piano' ? '🎹' : i === 'guitarra' ? '🎸' : '🎼'}
-                    </button>
-                  ))}
+      {/* Scale grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+        {filtered.map(scale => {
+          const checked = todayChecked.has(scale.id);
+          const count = practiceCount[scale.id] || 0;
+          const progressPct = Math.min(100, (count / maxPractice) * 100);
+
+          return (
+            <label
+              key={scale.id}
+              className={`stat-card flex items-center gap-3 cursor-pointer transition-all hover:border-primary/30 ${
+                checked ? 'border-primary/50 bg-primary/5' : ''
+              }`}
+            >
+              <Checkbox
+                checked={checked}
+                onCheckedChange={() => toggleScale(scale.id)}
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className={`text-sm font-medium truncate ${checked ? 'text-primary' : 'text-foreground'}`}>
+                    {scale.label}
+                  </span>
+                  {count > 0 && (
+                    <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                      {count}×
+                    </span>
+                  )}
                 </div>
+                {count > 0 && (
+                  <div className="h-1 bg-secondary rounded-full overflow-hidden mt-1">
+                    <div
+                      className="h-full bg-primary/40 rounded-full transition-all"
+                      style={{ width: `${progressPct}%` }}
+                    />
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Dominio</label>
-                <select value={mastery} onChange={e => setMastery(e.target.value as MasteryLevel)}
-                  className="w-full bg-secondary text-secondary-foreground rounded-md px-3 py-2 text-sm border border-border">
-                  {MASTERY_OPTIONS.map(m => <option key={m} value={m}>{MASTERY_LABELS[m]}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground">BPM actual</label>
-                <Input type="number" value={bpmCurrent} onChange={e => setBpmCurrent(parseInt(e.target.value) || 0)} />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">BPM objetivo</label>
-                <Input type="number" value={bpmTarget} onChange={e => setBpmTarget(parseInt(e.target.value) || 0)} />
-              </div>
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Notas</label>
-              <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">URL de referencia</label>
-              <Input value={refUrl} onChange={e => setRefUrl(e.target.value)} />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Progreso — {progress}%</label>
-              <input type="range" min={0} max={100} value={progress} onChange={e => setProgress(parseInt(e.target.value))}
-                className="w-full accent-primary" />
-            </div>
-            <div className="flex justify-between pt-2 border-t border-border">
-              {editingId ? <Button variant="destructive" size="sm" onClick={deleteScale}>🗑 Eliminar</Button> : <div />}
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={resetForm}>Cancelar</Button>
-                <Button size="sm" onClick={save}>Guardar</Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+            </label>
+          );
+        })}
+      </div>
     </div>
   );
 }
