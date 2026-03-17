@@ -100,13 +100,16 @@ export default function HistoryPage() {
               onClick={() => openEdit(s.id)}
               className="stat-card flex items-center justify-between cursor-pointer hover:border-primary/30"
             >
-              <div className="flex items-center gap-3">
-                <span className="text-xl">{s.instrument === 'piano' ? '🎹' : '🎸'}</span>
-                <div>
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <span className="text-xl shrink-0">{s.instrument === 'piano' ? '🎹' : '🎸'}</span>
+                <div className="min-w-0">
                   <p className="font-medium text-sm">{formatDate(s.date)}</p>
                   <p className="text-xs text-muted-foreground">
                     {s.categories.map(c => CATEGORY_LABELS[c]).join(', ')}
                   </p>
+                  {s.notes && (
+                    <p className="text-xs text-muted-foreground/70 truncate mt-0.5">{s.notes}</p>
+                  )}
                 </div>
               </div>
               <div className="text-right">
