@@ -64,35 +64,43 @@ export default function ScalesPage() {
       return;
     }
 
+    // Build list of scale names
+    const scaleNames = checkedToday
+      .map(l => PREDEFINED_SCALES.find(s => s.id === l.scaleId)?.label)
+      .filter(Boolean)
+      .join(', ');
+    const notesText = `Escalas (${checkedToday.length}): ${scaleNames}`;
+
     // Check if session already exists for today + escalas
     const existingSession = sessions.find(
       s => s.date === today && s.instrument === instrument && s.categories.includes('escalas')
     );
 
     if (existingSession) {
-      // Update notes with scale count
       setSessions(prev =>
         prev.map(s =>
           s.id === existingSession.id
-            ? { ...s, notes: `Escalas practicadas: ${checkedToday.length}`, durationMinutes: Math.max(s.durationMinutes, checkedToday.length * 2) }
+            ? { ...s, notes: notesText, durationMinutes: Math.max(s.durationMinutes, checkedToday.length * 2) }
             : s
         )
       );
-      toast.success(`Sesión actualizada: ${checkedToday.length} escalas`);
     } else {
       const session = {
         id: generateId(),
         date: today,
         instrument,
-        durationMinutes: checkedToday.length * 2, // ~2 min per scale estimate
+        durationMinutes: checkedToday.length * 2,
         categories: ['escalas' as const],
-        notes: `Escalas practicadas: ${checkedToday.length}`,
+        notes: notesText,
         rating: 3,
         goal: '',
       };
       setSessions(prev => [...prev, session]);
-      toast.success(`¡Sesión guardada! ${checkedToday.length} escalas registradas`);
     }
+
+    // Clear today's checks
+    setScaleLogs(prev => prev.filter(l => !(l.date === today && l.instrument === instrument)));
+    toast.success(`¡Sesión guardada! ${checkedToday.length} escalas registradas`);
   };
 
   const checkedCount = todayChecked.size;
