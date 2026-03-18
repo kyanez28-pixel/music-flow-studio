@@ -116,3 +116,15 @@ export interface ScalePracticeLog {
   date: string; // ISO date
   instrument: Instrument;
 }
+
+export interface HarmonyPracticeLog {
+  harmonyId: string;
+  date: string;
+  instrument: Instrument;
+}
+
+export interface RhythmPracticeLog {
+  rhythmItemId: string;
+  date: string;
+  instrument: Instrument;
+}
