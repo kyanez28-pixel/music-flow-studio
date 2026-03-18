@@ -196,7 +196,7 @@ export default function PracticePage() {
                 >
                   {timerRunning ? '⏸ Pausa' : '▶ Iniciar'}
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => { setTimerSeconds(0); setTimerRunning(false); }}>
+                <Button variant="outline" size="sm" onClick={resetTimer}>
                   ↺ Reset
                 </Button>
               </div>
