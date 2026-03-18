@@ -1,130 +1,199 @@
-import { useState } from 'react';
-import { useHarmonies } from '@/hooks/use-music-data';
-import { generateId } from '@/lib/music-utils';
-import { type Harmony, type HarmonyType } from '@/types/music';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useState, useMemo } from 'react';
+import { useSessions, useHarmonyLogs } from '@/hooks/use-music-data';
+import { generateId, getTodayEC } from '@/lib/music-utils';
+import { PREDEFINED_HARMONIES, HARMONY_CATEGORIES } from '@/lib/predefined-harmonies';
+import type { Instrument, HarmonyPracticeLog } from '@/types/music';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
-import { Plus } from 'lucide-react';
-
-const HARMONY_TYPES: { value: HarmonyType; label: string }[] = [
-  { value: 'progresion', label: 'Progresión' },
-  { value: 'acorde', label: 'Acorde' },
-  { value: 'voicing', label: 'Voicing' },
-  { value: 'cadencia', label: 'Cadencia' },
-  { value: 'otro', label: 'Otro' },
-];
 
 export default function HarmoniesPage() {
-  const [harmonies, setHarmonies] = useHarmonies();
-  const [showForm, setShowForm] = useState(false);
-  const [filterType, setFilterType] = useState<HarmonyType | 'todos'>('todos');
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [sessions, setSessions] = useSessions();
+  const [harmonyLogs, setHarmonyLogs] = useHarmonyLogs();
+  const [filterCategory, setFilterCategory] = useState<string>('todos');
+  const [instrument, setInstrument] = useState<Instrument>('piano');
 
-  const [name, setName] = useState('');
-  const [type, setType] = useState<HarmonyType>('progresion');
-  const [description, setDescription] = useState('');
-  const [notes, setNotes] = useState('');
+  const today = getTodayEC();
 
-  const resetForm = () => {
-    setShowForm(false); setEditingId(null);
-    setName(''); setType('progresion'); setDescription(''); setNotes('');
-  };
+  const todayChecked = useMemo(() => {
+    const set = new Set<string>();
+    harmonyLogs
+      .filter(l => l.date === today && l.instrument === instrument)
+      .forEach(l => set.add(l.harmonyId));
+    return set;
+  }, [harmonyLogs, today, instrument]);
 
-  const openEdit = (h: Harmony) => {
-    setEditingId(h.id); setName(h.name); setType(h.type);
-    setDescription(h.description); setNotes(h.notes); setShowForm(true);
-  };
+  const filtered = PREDEFINED_HARMONIES
+    .filter(h => filterCategory === 'todos' || h.category === filterCategory);
 
-  const save = () => {
-    if (!name.trim()) { toast.error('El nombre es requerido'); return; }
-    const harmony: Harmony = { id: editingId || generateId(), name, type, description, notes };
-    if (editingId) {
-      setHarmonies(prev => prev.map(h => h.id === editingId ? harmony : h));
-      toast.success('Armonía actualizada');
+  const practiceCount = useMemo(() => {
+    const counts: Record<string, number> = {};
+    harmonyLogs.forEach(l => {
+      counts[l.harmonyId] = (counts[l.harmonyId] || 0) + 1;
+    });
+    return counts;
+  }, [harmonyLogs]);
+
+  const maxPractice = Math.max(1, ...Object.values(practiceCount));
+
+  const toggleHarmony = (harmonyId: string) => {
+    const alreadyChecked = todayChecked.has(harmonyId);
+    if (alreadyChecked) {
+      setHarmonyLogs(prev =>
+        prev.filter(l => !(l.harmonyId === harmonyId && l.date === today && l.instrument === instrument))
+      );
     } else {
-      setHarmonies(prev => [...prev, harmony]);
-      toast.success('Armonía agregada');
+      const log: HarmonyPracticeLog = { harmonyId, date: today, instrument };
+      setHarmonyLogs(prev => [...prev, log]);
     }
-    resetForm();
   };
 
-  const deleteItem = () => {
-    setHarmonies(prev => prev.filter(h => h.id !== editingId));
-    resetForm(); toast.success('Armonía eliminada');
+  const saveSession = () => {
+    const checkedToday = harmonyLogs.filter(l => l.date === today && l.instrument === instrument);
+    if (checkedToday.length === 0) {
+      toast.error('Marca al menos una armonía antes de guardar');
+      return;
+    }
+
+    const names = checkedToday
+      .map(l => PREDEFINED_HARMONIES.find(h => h.id === l.harmonyId)?.name)
+      .filter(Boolean)
+      .join(', ');
+    const notesText = `Armonías (${checkedToday.length}): ${names}`;
+
+    const existingSession = sessions.find(
+      s => s.date === today && s.instrument === instrument && s.categories.includes('armonias')
+    );
+
+    if (existingSession) {
+      setSessions(prev =>
+        prev.map(s =>
+          s.id === existingSession.id
+            ? { ...s, notes: notesText, durationMinutes: Math.max(s.durationMinutes, checkedToday.length * 2) }
+            : s
+        )
+      );
+    } else {
+      const session = {
+        id: generateId(),
+        date: today,
+        instrument,
+        durationMinutes: checkedToday.length * 2,
+        categories: ['armonias' as const],
+        notes: notesText,
+        rating: 3,
+        goal: '',
+      };
+      setSessions(prev => [...prev, session]);
+    }
+
+    setHarmonyLogs(prev => prev.filter(l => !(l.date === today && l.instrument === instrument)));
+    toast.success(`¡Sesión guardada! ${checkedToday.length} armonías registradas`);
   };
 
-  const filtered = harmonies.filter(h => filterType === 'todos' || h.type === filterType);
+  const checkedCount = todayChecked.size;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="page-title">🎶 Armonías</h1>
-          <p className="text-sm text-muted-foreground mt-1">Progresiones, acordes y teoría armónica</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Marca las armonías que practiques hoy — <span className="font-semibold text-primary">{checkedCount}</span> de {filtered.length}
+          </p>
         </div>
-        <Button onClick={() => setShowForm(true)}><Plus className="h-4 w-4 mr-1" /> Nueva Armonía</Button>
+        <button
+          onClick={saveSession}
+          className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+        >
+          Guardar Sesión ({checkedCount})
+        </button>
       </div>
 
       <div className="flex gap-2">
-        <select value={filterType} onChange={e => setFilterType(e.target.value as any)}
-          className="bg-secondary text-secondary-foreground rounded-md px-3 py-1.5 text-sm border border-border">
-          <option value="todos">Todos los tipos</option>
-          {HARMONY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+        {(['piano', 'guitarra'] as Instrument[]).map(inst => (
+          <button
+            key={inst}
+            onClick={() => setInstrument(inst)}
+            className={`chip flex-1 justify-center ${instrument === inst ? 'chip-active' : ''}`}
+          >
+            {inst === 'piano' ? '🎹 Piano' : '🎸 Guitarra'}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <select
+          value={filterCategory}
+          onChange={e => setFilterCategory(e.target.value)}
+          className="bg-secondary text-secondary-foreground rounded-md px-3 py-1.5 text-sm border border-border"
+        >
+          <option value="todos">Todas las categorías</option>
+          {HARMONY_CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
         </select>
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="stat-card py-12 text-center"><p className="text-muted-foreground">No hay armonías registradas</p></div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {filtered.map(h => (
-            <div key={h.id} onClick={() => openEdit(h)} className="stat-card cursor-pointer hover:border-primary/30">
-              <div className="flex items-center justify-between mb-1">
-                <h4 className="font-medium">{h.name}</h4>
-                <span className="chip text-xs">{HARMONY_TYPES.find(t => t.value === h.type)?.label}</span>
-              </div>
-              {h.description && <p className="text-xs text-muted-foreground line-clamp-2">{h.description}</p>}
-            </div>
-          ))}
+      <div className="stat-card">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-muted-foreground">Progreso de hoy</span>
+          <span className="text-sm font-mono font-semibold text-primary">{checkedCount}/{filtered.length}</span>
         </div>
-      )}
+        <Progress value={filtered.length > 0 ? (checkedCount / filtered.length) * 100 : 0} className="h-2" />
+      </div>
 
-      <Dialog open={showForm} onOpenChange={open => { if (!open) resetForm(); }}>
-        <DialogContent className="bg-card border-border max-w-md">
-          <DialogHeader><DialogTitle className="font-display">{editingId ? 'Editar' : 'Nueva'} Armonía</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-muted-foreground">Nombre *</label>
-              <Input value={name} onChange={e => setName(e.target.value)} placeholder="II-V-I en Do Mayor" />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Tipo</label>
-              <select value={type} onChange={e => setType(e.target.value as HarmonyType)}
-                className="w-full bg-secondary text-secondary-foreground rounded-md px-3 py-2 text-sm border border-border">
-                {HARMONY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Descripción</label>
-              <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Notas</label>
-              <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} />
-            </div>
-            <div className="flex justify-between pt-2 border-t border-border">
-              {editingId ? <Button variant="destructive" size="sm" onClick={deleteItem}>🗑 Eliminar</Button> : <div />}
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={resetForm}>Cancelar</Button>
-                <Button size="sm" onClick={save}>Guardar</Button>
+      {HARMONY_CATEGORIES
+        .filter(cat => filterCategory === 'todos' || filterCategory === cat.key)
+        .map(cat => {
+          const items = PREDEFINED_HARMONIES.filter(h => h.category === cat.key);
+          if (items.length === 0) return null;
+          return (
+            <div key={cat.key}>
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">{cat.label}</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {items.map(harmony => {
+                  const checked = todayChecked.has(harmony.id);
+                  const count = practiceCount[harmony.id] || 0;
+                  const progressPct = Math.min(100, (count / maxPractice) * 100);
+
+                  return (
+                    <label
+                      key={harmony.id}
+                      className={`stat-card flex items-center gap-3 cursor-pointer transition-all hover:border-primary/30 ${
+                        checked ? 'border-primary/50 bg-primary/5' : ''
+                      }`}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={() => toggleHarmony(harmony.id)}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-sm font-medium truncate ${checked ? 'text-primary' : 'text-foreground'}`}>
+                            {harmony.name}
+                          </span>
+                          {count > 0 && (
+                            <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                              {count}×
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{harmony.description}</p>
+                        {count > 0 && (
+                          <div className="h-1 bg-secondary rounded-full overflow-hidden mt-1">
+                            <div
+                              className="h-full bg-primary/40 rounded-full transition-all"
+                              style={{ width: `${progressPct}%` }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  );
+                })}
               </div>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          );
+        })}
     </div>
   );
 }
