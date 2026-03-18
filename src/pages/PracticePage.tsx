@@ -119,7 +119,7 @@ export default function PracticePage() {
               <div className="flex justify-center gap-2">
                 <Button
                   variant={timerRunning ? 'secondary' : 'default'}
-                  onClick={() => setTimerRunning(!timerRunning)}
+                  onClick={toggleTimer}
                   size="sm"
                 >
                   {timerRunning ? '⏸ Pausa' : '▶ Iniciar'}
