@@ -1,5 +1,5 @@
 import { useLocalStorage } from './use-local-storage';
-import type { PracticeSession, Scale, Harmony, Melody, Rhythm, Song, WeeklySetlist, ScalePracticeLog } from '@/types/music';
+import type { PracticeSession, Scale, Harmony, Melody, Rhythm, Song, WeeklySetlist, ScalePracticeLog, HarmonyPracticeLog, RhythmPracticeLog } from '@/types/music';
 
 export function useSessions() {
   return useLocalStorage<PracticeSession[]>('mm-sessions', []);
@@ -17,12 +17,20 @@ export function useHarmonies() {
   return useLocalStorage<Harmony[]>('mm-harmonies', []);
 }
 
+export function useHarmonyLogs() {
+  return useLocalStorage<HarmonyPracticeLog[]>('mm-harmony-logs', []);
+}
+
 export function useMelodies() {
   return useLocalStorage<Melody[]>('mm-melodies', []);
 }
 
 export function useRhythms() {
   return useLocalStorage<Rhythm[]>('mm-rhythms', []);
+}
+
+export function useRhythmLogs() {
+  return useLocalStorage<RhythmPracticeLog[]>('mm-rhythm-logs', []);
 }
 
 export function useSongs() {
