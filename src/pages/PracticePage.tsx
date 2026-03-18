@@ -69,7 +69,6 @@ export default function PracticePage() {
     setRating(3);
     setGoal('');
     resetTimer();
-    setTimerRunning(false);
     setManualHours(0);
     setManualMins(0);
     setUseManual(false);
