@@ -19,10 +19,12 @@ const ROUTE_NAMES: Record<string, string> = {
 
 export default function AppLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [sessions] = useSessions();
   const streak = getStreak(sessions);
   const totalMinutes = getTotalMinutes(sessions);
   const routeName = ROUTE_NAMES[location.pathname] ?? '';
+  const { seconds, running, toggleTimer } = usePracticeTimer();
 
   return (
     <SidebarProvider>
