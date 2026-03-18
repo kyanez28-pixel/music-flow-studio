@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSessions } from '@/hooks/use-music-data';
 import { generateId, getTodayEC } from '@/lib/music-utils';
 import { ALL_CATEGORIES, CATEGORY_LABELS, type PracticeCategory, type Instrument } from '@/types/music';
@@ -6,6 +6,34 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+
+const TIMER_STORAGE_KEY = 'practice-timer';
+
+interface TimerState {
+  startedAt: number | null; // timestamp ms
+  accumulatedMs: number;    // ms accumulated before last pause
+  running: boolean;
+}
+
+function loadTimerState(): TimerState {
+  try {
+    const raw = localStorage.getItem(TIMER_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return { startedAt: null, accumulatedMs: 0, running: false };
+}
+
+function saveTimerState(state: TimerState) {
+  localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(state));
+}
+
+function getElapsedSeconds(state: TimerState): number {
+  let ms = state.accumulatedMs;
+  if (state.running && state.startedAt) {
+    ms += Date.now() - state.startedAt;
+  }
+  return Math.floor(ms / 1000);
+}
 
 export default function PracticePage() {
   const [sessions, setSessions] = useSessions();
@@ -16,9 +44,9 @@ export default function PracticePage() {
   const [rating, setRating] = useState(3);
   const [goal, setGoal] = useState('');
 
-  // Timer
-  const [timerSeconds, setTimerSeconds] = useState(0);
-  const [timerRunning, setTimerRunning] = useState(false);
+  // Persistent timer
+  const [timerState, setTimerState] = useState<TimerState>(loadTimerState);
+  const [displaySeconds, setDisplaySeconds] = useState(() => getElapsedSeconds(loadTimerState()));
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Manual duration
@@ -26,14 +54,46 @@ export default function PracticePage() {
   const [manualMins, setManualMins] = useState(0);
   const [useManual, setUseManual] = useState(false);
 
+  // Persist timer state changes
   useEffect(() => {
-    if (timerRunning) {
-      intervalRef.current = setInterval(() => setTimerSeconds(s => s + 1), 1000);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
+    saveTimerState(timerState);
+  }, [timerState]);
+
+  // Tick display
+  useEffect(() => {
+    if (timerState.running) {
+      setDisplaySeconds(getElapsedSeconds(timerState));
+      intervalRef.current = setInterval(() => {
+        setDisplaySeconds(getElapsedSeconds(timerState));
+      }, 1000);
+    } else {
+      setDisplaySeconds(getElapsedSeconds(timerState));
+      if (intervalRef.current) clearInterval(intervalRef.current);
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [timerRunning]);
+  }, [timerState]);
+
+  const timerRunning = timerState.running;
+  const timerSeconds = displaySeconds;
+
+  const setTimerRunning = useCallback((running: boolean) => {
+    setTimerState(prev => {
+      if (running && !prev.running) {
+        return { ...prev, startedAt: Date.now(), running: true };
+      }
+      if (!running && prev.running) {
+        const elapsed = prev.startedAt ? Date.now() - prev.startedAt : 0;
+        return { accumulatedMs: prev.accumulatedMs + elapsed, startedAt: null, running: false };
+      }
+      return prev;
+    });
+  }, []);
+
+  const resetTimer = useCallback(() => {
+    const reset: TimerState = { startedAt: null, accumulatedMs: 0, running: false };
+    setTimerState(reset);
+    setDisplaySeconds(0);
+  }, []);
 
   const formatTimer = (s: number) => {
     const h = Math.floor(s / 3600);
@@ -79,7 +139,7 @@ export default function PracticePage() {
     setNotes('');
     setRating(3);
     setGoal('');
-    setTimerSeconds(0);
+    resetTimer();
     setTimerRunning(false);
     setManualHours(0);
     setManualMins(0);
@@ -136,7 +196,7 @@ export default function PracticePage() {
                 >
                   {timerRunning ? '⏸ Pausa' : '▶ Iniciar'}
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => { setTimerSeconds(0); setTimerRunning(false); }}>
+                <Button variant="outline" size="sm" onClick={resetTimer}>
                   ↺ Reset
                 </Button>
               </div>
