@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useSessions } from '@/hooks/use-music-data';
 import { generateId, getTodayEC } from '@/lib/music-utils';
 import { ALL_CATEGORIES, CATEGORY_LABELS, type PracticeCategory, type Instrument } from '@/types/music';
@@ -6,37 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-
-const TIMER_STORAGE_KEY = 'practice-timer';
-
-interface TimerState {
-  startedAt: number | null; // timestamp ms
-  accumulatedMs: number;    // ms accumulated before last pause
-  running: boolean;
-}
-
-function loadTimerState(): TimerState {
-  try {
-    const raw = localStorage.getItem(TIMER_STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return { startedAt: null, accumulatedMs: 0, running: false };
-}
-
-function saveTimerState(state: TimerState) {
-  localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(state));
-}
-
-function getElapsedSeconds(state: TimerState): number {
-  let ms = state.accumulatedMs;
-  if (state.running && state.startedAt) {
-    ms += Date.now() - state.startedAt;
-  }
-  return Math.floor(ms / 1000);
-}
+import { usePracticeTimer, formatTimer } from '@/hooks/use-practice-timer';
 
 export default function PracticePage() {
-  const [sessions, setSessions] = useSessions();
+  const [, setSessions] = useSessions();
   const [date, setDate] = useState(getTodayEC());
   const [instrument, setInstrument] = useState<Instrument>('piano');
   const [categories, setCategories] = useState<PracticeCategory[]>([]);
@@ -44,56 +17,12 @@ export default function PracticePage() {
   const [rating, setRating] = useState(3);
   const [goal, setGoal] = useState('');
 
-  // Persistent timer
-  const [timerState, setTimerState] = useState<TimerState>(loadTimerState);
-  const [displaySeconds, setDisplaySeconds] = useState(() => getElapsedSeconds(loadTimerState()));
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { seconds: timerSeconds, running: timerRunning, toggleTimer, resetTimer } = usePracticeTimer();
 
   // Manual duration
   const [manualHours, setManualHours] = useState(0);
   const [manualMins, setManualMins] = useState(0);
   const [useManual, setUseManual] = useState(false);
-
-  // Persist timer state changes
-  useEffect(() => {
-    saveTimerState(timerState);
-  }, [timerState]);
-
-  // Tick display
-  useEffect(() => {
-    if (timerState.running) {
-      setDisplaySeconds(getElapsedSeconds(timerState));
-      intervalRef.current = setInterval(() => {
-        setDisplaySeconds(getElapsedSeconds(timerState));
-      }, 1000);
-    } else {
-      setDisplaySeconds(getElapsedSeconds(timerState));
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [timerState]);
-
-  const timerRunning = timerState.running;
-  const timerSeconds = displaySeconds;
-
-  const setTimerRunning = useCallback((running: boolean) => {
-    setTimerState(prev => {
-      if (running && !prev.running) {
-        return { ...prev, startedAt: Date.now(), running: true };
-      }
-      if (!running && prev.running) {
-        const elapsed = prev.startedAt ? Date.now() - prev.startedAt : 0;
-        return { accumulatedMs: prev.accumulatedMs + elapsed, startedAt: null, running: false };
-      }
-      return prev;
-    });
-  }, []);
-
-  const resetTimer = useCallback(() => {
-    const reset: TimerState = { startedAt: null, accumulatedMs: 0, running: false };
-    setTimerState(reset);
-    setDisplaySeconds(0);
-  }, []);
 
   const formatTimer = (s: number) => {
     const h = Math.floor(s / 3600);
@@ -140,7 +69,6 @@ export default function PracticePage() {
     setRating(3);
     setGoal('');
     resetTimer();
-    setTimerRunning(false);
     setManualHours(0);
     setManualMins(0);
     setUseManual(false);
@@ -191,7 +119,7 @@ export default function PracticePage() {
               <div className="flex justify-center gap-2">
                 <Button
                   variant={timerRunning ? 'secondary' : 'default'}
-                  onClick={() => setTimerRunning(!timerRunning)}
+                  onClick={toggleTimer}
                   size="sm"
                 >
                   {timerRunning ? '⏸ Pausa' : '▶ Iniciar'}

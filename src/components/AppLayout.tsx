@@ -1,8 +1,9 @@
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useSessions } from '@/hooks/use-music-data';
 import { getStreak, formatDurationLong, getTotalMinutes } from '@/lib/music-utils';
+import { usePracticeTimer, formatTimer } from '@/hooks/use-practice-timer';
 
 const ROUTE_NAMES: Record<string, string> = {
   '/': 'Dashboard',
@@ -18,10 +19,12 @@ const ROUTE_NAMES: Record<string, string> = {
 
 export default function AppLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [sessions] = useSessions();
   const streak = getStreak(sessions);
   const totalMinutes = getTotalMinutes(sessions);
   const routeName = ROUTE_NAMES[location.pathname] ?? '';
+  const { seconds, running, toggleTimer } = usePracticeTimer();
 
   return (
     <SidebarProvider>
@@ -38,7 +41,23 @@ export default function AppLayout() {
                 <span>{routeName}</span>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              {/* Active timer indicator */}
+              {(running || seconds > 0) && (
+                <button
+                  onClick={() => {
+                    if (location.pathname !== '/practice') navigate('/practice');
+                    else toggleTimer();
+                  }}
+                  className={`flex items-center gap-2 stat-card py-1.5 px-3 cursor-pointer transition-colors ${running ? 'border-primary/50 shadow-[0_0_8px_hsl(var(--primary)/0.2)]' : ''}`}
+                >
+                  <span className={running ? 'animate-pulse' : ''}>⏱</span>
+                  <div className="text-right">
+                    <p className="font-mono text-sm font-semibold text-foreground">{formatTimer(seconds)}</p>
+                    <p className="text-[10px] text-muted-foreground leading-none">{running ? 'en curso' : 'pausado'}</p>
+                  </div>
+                </button>
+              )}
               {/* Streak badge */}
               <div className="flex items-center gap-2 stat-card py-1.5 px-3">
                 <span>🔥</span>
