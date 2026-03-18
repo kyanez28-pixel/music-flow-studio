@@ -39,28 +39,53 @@ export function usePracticeTimer() {
   const [timerState, setTimerState] = useState<TimerState>(loadTimerState);
   const [displaySeconds, setDisplaySeconds] = useState(() => getElapsedSeconds(loadTimerState()));
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerStateRef = useRef(timerState);
 
+  // Keep ref in sync
+  useEffect(() => {
+    timerStateRef.current = timerState;
+  }, [timerState]);
+
+  // Persist to localStorage
   useEffect(() => {
     saveTimerState(timerState);
   }, [timerState]);
 
+  // Poll localStorage to sync across components (same tab)
   useEffect(() => {
-    if (timerState.running) {
-      setDisplaySeconds(getElapsedSeconds(timerState));
-      intervalRef.current = setInterval(() => {
-        setDisplaySeconds(getElapsedSeconds(timerState));
-      }, 1000);
-    } else {
-      setDisplaySeconds(getElapsedSeconds(timerState));
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    }
+    const syncInterval = setInterval(() => {
+      const stored = loadTimerState();
+      const current = timerStateRef.current;
+      if (
+        stored.running !== current.running ||
+        stored.startedAt !== current.startedAt ||
+        stored.accumulatedMs !== current.accumulatedMs
+      ) {
+        setTimerState(stored);
+      }
+    }, 500);
+    return () => clearInterval(syncInterval);
+  }, []);
+
+  // Update display every second
+  useEffect(() => {
+    const tick = () => setDisplaySeconds(getElapsedSeconds(timerStateRef.current));
+    tick();
+    intervalRef.current = setInterval(tick, 1000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, []);
+
+  // Also update display when timerState changes
+  useEffect(() => {
+    setDisplaySeconds(getElapsedSeconds(timerState));
   }, [timerState]);
 
   const startTimer = useCallback(() => {
     setTimerState(prev => {
       if (!prev.running) {
-        return { ...prev, startedAt: Date.now(), running: true };
+        const next = { ...prev, startedAt: Date.now(), running: true };
+        saveTimerState(next);
+        return next;
       }
       return prev;
     });
@@ -70,7 +95,9 @@ export function usePracticeTimer() {
     setTimerState(prev => {
       if (prev.running) {
         const elapsed = prev.startedAt ? Date.now() - prev.startedAt : 0;
-        return { accumulatedMs: prev.accumulatedMs + elapsed, startedAt: null, running: false };
+        const next: TimerState = { accumulatedMs: prev.accumulatedMs + elapsed, startedAt: null, running: false };
+        saveTimerState(next);
+        return next;
       }
       return prev;
     });
@@ -79,6 +106,7 @@ export function usePracticeTimer() {
   const resetTimer = useCallback(() => {
     const reset: TimerState = { startedAt: null, accumulatedMs: 0, running: false };
     setTimerState(reset);
+    saveTimerState(reset);
     setDisplaySeconds(0);
   }, []);
 
@@ -86,9 +114,13 @@ export function usePracticeTimer() {
     setTimerState(prev => {
       if (prev.running) {
         const elapsed = prev.startedAt ? Date.now() - prev.startedAt : 0;
-        return { accumulatedMs: prev.accumulatedMs + elapsed, startedAt: null, running: false };
+        const next: TimerState = { accumulatedMs: prev.accumulatedMs + elapsed, startedAt: null, running: false };
+        saveTimerState(next);
+        return next;
       }
-      return { ...prev, startedAt: Date.now(), running: true };
+      const next = { ...prev, startedAt: Date.now(), running: true };
+      saveTimerState(next);
+      return next;
     });
   }, []);
 
