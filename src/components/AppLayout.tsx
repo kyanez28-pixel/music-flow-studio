@@ -41,7 +41,23 @@ export default function AppLayout() {
                 <span>{routeName}</span>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              {/* Active timer indicator */}
+              {(running || seconds > 0) && (
+                <button
+                  onClick={() => {
+                    if (location.pathname !== '/practice') navigate('/practice');
+                    else toggleTimer();
+                  }}
+                  className={`flex items-center gap-2 stat-card py-1.5 px-3 cursor-pointer transition-colors ${running ? 'border-primary/50 shadow-[0_0_8px_hsl(var(--primary)/0.2)]' : ''}`}
+                >
+                  <span className={running ? 'animate-pulse' : ''}>⏱</span>
+                  <div className="text-right">
+                    <p className="font-mono text-sm font-semibold text-foreground">{formatTimer(seconds)}</p>
+                    <p className="text-[10px] text-muted-foreground leading-none">{running ? 'en curso' : 'pausado'}</p>
+                  </div>
+                </button>
+              )}
               {/* Streak badge */}
               <div className="flex items-center gap-2 stat-card py-1.5 px-3">
                 <span>🔥</span>
