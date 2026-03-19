@@ -71,9 +71,16 @@ export default function AppLayout() {
                 </div>
               </div>
               {/* Total time */}
-              <div className="stat-card py-1.5 px-3 hidden sm:block">
-                <p className="font-mono text-sm font-semibold text-foreground">{formatDurationLong(totalMinutes)}</p>
-                <p className="text-[10px] text-muted-foreground leading-none">tiempo total</p>
+              <div className="stat-card py-1.5 px-3 hidden sm:flex items-center gap-3">
+                <div className="text-right">
+                  <p className="font-mono text-sm font-semibold text-foreground">{formatDurationLong(todayMinutes)}</p>
+                  <p className="text-[10px] text-muted-foreground leading-none">hoy</p>
+                </div>
+                <div className="w-px h-6 bg-border" />
+                <div className="text-right">
+                  <p className="font-mono text-sm font-semibold text-foreground">{formatDurationLong(weekMinutes)}</p>
+                  <p className="text-[10px] text-muted-foreground leading-none">semana</p>
+                </div>
               </div>
             </div>
           </header>
