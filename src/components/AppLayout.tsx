@@ -2,7 +2,7 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useSessions } from '@/hooks/use-music-data';
-import { getStreak, formatDurationLong, getTotalMinutes } from '@/lib/music-utils';
+import { getStreak, formatDurationLong, getTotalMinutes, getTodayEC, getMonday } from '@/lib/music-utils';
 import { usePracticeTimer, formatTimer } from '@/hooks/use-practice-timer';
 
 const ROUTE_NAMES: Record<string, string> = {
@@ -22,7 +22,11 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const [sessions] = useSessions();
   const streak = getStreak(sessions);
-  const totalMinutes = getTotalMinutes(sessions);
+  const today = getTodayEC();
+  const monday = getMonday(new Date());
+  const mondayStr = monday.toLocaleDateString('en-CA', { timeZone: 'America/Guayaquil' });
+  const todayMinutes = getTotalMinutes(sessions.filter(s => s.date === today));
+  const weekMinutes = getTotalMinutes(sessions.filter(s => s.date >= mondayStr));
   const routeName = ROUTE_NAMES[location.pathname] ?? '';
   const { seconds, running, toggleTimer } = usePracticeTimer();
 
@@ -67,9 +71,16 @@ export default function AppLayout() {
                 </div>
               </div>
               {/* Total time */}
-              <div className="stat-card py-1.5 px-3 hidden sm:block">
-                <p className="font-mono text-sm font-semibold text-foreground">{formatDurationLong(totalMinutes)}</p>
-                <p className="text-[10px] text-muted-foreground leading-none">tiempo total</p>
+              <div className="stat-card py-1.5 px-3 hidden sm:flex items-center gap-3">
+                <div className="text-right">
+                  <p className="font-mono text-sm font-semibold text-foreground">{formatDurationLong(todayMinutes)}</p>
+                  <p className="text-[10px] text-muted-foreground leading-none">hoy</p>
+                </div>
+                <div className="w-px h-6 bg-border" />
+                <div className="text-right">
+                  <p className="font-mono text-sm font-semibold text-foreground">{formatDurationLong(weekMinutes)}</p>
+                  <p className="text-[10px] text-muted-foreground leading-none">semana</p>
+                </div>
               </div>
             </div>
           </header>
