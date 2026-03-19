@@ -2,7 +2,7 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useSessions } from '@/hooks/use-music-data';
-import { getStreak, formatDurationLong, getTotalMinutes } from '@/lib/music-utils';
+import { getStreak, formatDuration, formatDurationLong, getTotalMinutes, getTodayEC, getMonday } from '@/lib/music-utils';
 import { usePracticeTimer, formatTimer } from '@/hooks/use-practice-timer';
 
 const ROUTE_NAMES: Record<string, string> = {
