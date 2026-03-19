@@ -158,6 +158,150 @@ export type Database = {
           },
         ]
       }
+      rhythm_folders: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          sort_order: number | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      rhythm_images: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          rhythm_id: string
+          sort_order: number | null
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          rhythm_id: string
+          sort_order?: number | null
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          rhythm_id?: string
+          sort_order?: number | null
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rhythm_images_rhythm_id_fkey"
+            columns: ["rhythm_id"]
+            isOneToOne: false
+            referencedRelation: "rhythms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rhythm_practice_logs: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          instrument: string
+          rhythm_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          instrument?: string
+          rhythm_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          instrument?: string
+          rhythm_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rhythm_practice_logs_rhythm_id_fkey"
+            columns: ["rhythm_id"]
+            isOneToOne: false
+            referencedRelation: "rhythms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rhythms: {
+        Row: {
+          bpm: number | null
+          created_at: string
+          description: string | null
+          folder_id: string | null
+          id: string
+          instrument: string
+          key: string | null
+          name: string
+          progress: number | null
+          status: string
+          time_signature: string | null
+          updated_at: string
+        }
+        Insert: {
+          bpm?: number | null
+          created_at?: string
+          description?: string | null
+          folder_id?: string | null
+          id?: string
+          instrument?: string
+          key?: string | null
+          name: string
+          progress?: number | null
+          status?: string
+          time_signature?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bpm?: number | null
+          created_at?: string
+          description?: string | null
+          folder_id?: string | null
+          id?: string
+          instrument?: string
+          key?: string | null
+          name?: string
+          progress?: number | null
+          status?: string
+          time_signature?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rhythms_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "rhythm_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
