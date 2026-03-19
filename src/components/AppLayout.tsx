@@ -22,7 +22,11 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const [sessions] = useSessions();
   const streak = getStreak(sessions);
-  const totalMinutes = getTotalMinutes(sessions);
+  const today = getTodayEC();
+  const monday = getMonday(new Date());
+  const mondayStr = monday.toLocaleDateString('en-CA', { timeZone: 'America/Guayaquil' });
+  const todayMinutes = getTotalMinutes(sessions.filter(s => s.date === today));
+  const weekMinutes = getTotalMinutes(sessions.filter(s => s.date >= mondayStr));
   const routeName = ROUTE_NAMES[location.pathname] ?? '';
   const { seconds, running, toggleTimer } = usePracticeTimer();
 
