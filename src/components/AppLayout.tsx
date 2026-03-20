@@ -4,6 +4,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useSessions } from '@/hooks/use-music-data';
 import { getStreak, formatDurationLong, getTotalMinutes, getTodayEC, getMonday } from '@/lib/music-utils';
 import { usePracticeTimer, formatTimer } from '@/hooks/use-practice-timer';
+import FloatingMetronome from '@/components/FloatingMetronome';
 
 const ROUTE_NAMES: Record<string, string> = {
   '/': 'Dashboard',
@@ -87,6 +88,7 @@ export default function AppLayout() {
           {/* Main content */}
           <main className="flex-1 overflow-auto p-4 md:p-6">
             <Outlet />
+            <FloatingMetronome />
           </main>
         </div>
       </div>
