@@ -4,6 +4,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useSessions } from '@/hooks/use-music-data';
 import { getStreak, formatDurationLong, getTotalMinutes, getTodayEC, getMonday } from '@/lib/music-utils';
 import { usePracticeTimer, formatTimer } from '@/hooks/use-practice-timer';
+import FloatingMetronome from '@/components/FloatingMetronome';
 
 const ROUTE_NAMES: Record<string, string> = {
   '/': 'Dashboard',
