@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Timer, List, Music2, BookOpen,
-  Guitar, Drum, BarChart3, Cross
+  Guitar, Drum, BarChart3, Cross, AudioLines
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -21,6 +21,7 @@ import { getMonday } from '@/lib/music-utils';
 const generalItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
   { title: 'Registrar Práctica', url: '/practice', icon: Timer },
+  { title: 'Metrónomo', url: '/metronome', icon: AudioLines },
   { title: 'Historial', url: '/history', icon: List },
 ];
 

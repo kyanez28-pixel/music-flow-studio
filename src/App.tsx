@@ -12,6 +12,7 @@ import HarmoniesPage from "./pages/HarmoniesPage";
 import MelodiesPage from "./pages/MelodiesPage";
 import RhythmsPage from "./pages/RhythmsPage";
 import StatsPage from "./pages/StatsPage";
+import MetronomePage from "./pages/MetronomePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/melodies" element={<MelodiesPage />} />
             <Route path="/rhythms" element={<RhythmsPage />} />
             <Route path="/stats" element={<StatsPage />} />
+            <Route path="/metronome" element={<MetronomePage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
