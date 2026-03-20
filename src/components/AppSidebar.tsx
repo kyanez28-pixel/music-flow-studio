@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Timer, List, Music2, BookOpen,
-  Guitar, Drum, BarChart3, Cross, Metronome
+  Guitar, Drum, BarChart3, Cross, AudioLines
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
