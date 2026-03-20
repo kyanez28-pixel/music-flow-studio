@@ -21,7 +21,7 @@ import { getMonday } from '@/lib/music-utils';
 const generalItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
   { title: 'Registrar Práctica', url: '/practice', icon: Timer },
-  { title: 'Metrónomo', url: '/metronome', icon: Metronome },
+  { title: 'Metrónomo', url: '/metronome', icon: AudioLines },
   { title: 'Historial', url: '/history', icon: List },
 ];
 
