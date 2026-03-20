@@ -88,6 +88,7 @@ export default function AppLayout() {
           {/* Main content */}
           <main className="flex-1 overflow-auto p-4 md:p-6">
             <Outlet />
+            <FloatingMetronome />
           </main>
         </div>
       </div>
