@@ -12,6 +12,7 @@ import HarmoniesPage from "./pages/HarmoniesPage";
 import MelodiesPage from "./pages/MelodiesPage";
 import RhythmsPage from "./pages/RhythmsPage";
 import StatsPage from "./pages/StatsPage";
+import MetronomePage from "./pages/MetronomePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
